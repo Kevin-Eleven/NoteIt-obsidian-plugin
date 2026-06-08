@@ -1,4 +1,4 @@
-import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, WorkspaceLeaf, setIcon } from "obsidian";
 
 import ChatWriterPlugin from "../main";
 
@@ -32,7 +32,7 @@ export class ChatComposerView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "Chat writer";
+		return "NoteIt";
 	}
 
 	getIcon(): string {
@@ -43,36 +43,96 @@ export class ChatComposerView extends ItemView {
 		const { contentEl } = this;
 
 		contentEl.empty();
+		contentEl.addClass("chat-composer-view");
 
-		const shell = contentEl.createDiv();
-
-		shell.createEl("h2", {
-			text: "Chat writer",
+		const shell = contentEl.createDiv({
+			cls: "chat-composer-shell",
 		});
 
-		this.historyEl = shell.createDiv();
+		shell.createEl("h2", {
+			text: "NoteIt",
+		});
 
-		this.renderMessage("system", "Type a prompt to generate a note.");
+		this.historyEl = shell.createDiv({
+			cls: "chat-history",
+		});
 
-		this.inputEl = shell.createEl("textarea", {
+		this.renderMessage(
+			"system",
+			"Ready. Enter a prompt to generate notes.",
+		);
+
+		const inputWrap = shell.createDiv({
+			cls: "chat-input-wrap",
+		});
+
+		this.inputEl = inputWrap.createEl("textarea", {
 			attr: {
-				rows: "5",
+				placeholder: "Ask me to generate notes...",
 			},
 		});
 
-		const sendButton = shell.createEl("button", {
+		this.inputEl.addEventListener("keydown", (event) => {
+			if (event.key === "Enter" && !event.shiftKey) {
+				event.preventDefault();
+				void this.handleSend();
+			}
+		});
+
+		const actions = inputWrap.createDiv({
+			cls: "chat-actions",
+		});
+
+		const clearBtn = actions.createEl("button", {
+			text: "Clear Chat",
+		});
+
+		clearBtn.addEventListener("click", () => {
+			this.historyEl.empty();
+			this.renderMessage("system", "Chat cleared.");
+		});
+
+		const sendBtn = actions.createEl("button", {
 			text: "Send",
 		});
 
-		sendButton.addEventListener("click", () => {
+		sendBtn.addEventListener("click", () => {
 			void this.handleSend();
 		});
 	}
 
-	private renderMessage(role: "system" | "user", text: string): void {
-		const message = this.historyEl.createDiv();
+	private renderMessage(role: "user" | "system", text: string): void {
+		const wrapper = this.historyEl.createDiv({
+			cls: `chat-message chat-message-${role}`,
+		});
 
-		message.setText(`[${role}] ${text}`);
+		const body = wrapper.createDiv({
+			cls: "chat-message-body",
+		});
+
+		body.setText(text);
+
+		// Make text selectable
+		body.style.userSelect = "text";
+		body.style.webkitUserSelect = "text";
+
+		if (role === "user") {
+			const copyBtn = wrapper.createEl("button", {
+				cls: "chat-copy-button",
+			});
+
+			copyBtn.setAttribute("aria-label", "Copy prompt");
+			copyBtn.setAttribute("title", "Copy prompt");
+
+			setIcon(copyBtn, "copy");
+
+			copyBtn.addEventListener("click", async () => {
+				await navigator.clipboard.writeText(text);
+				new Notice("Prompt copied");
+			});
+		}
+
+		this.historyEl.scrollTop = this.historyEl.scrollHeight;
 	}
 
 	private async handleSend(): Promise<void> {
@@ -83,14 +143,11 @@ export class ChatComposerView extends ItemView {
 		const userMessage = this.inputEl.value.trim();
 
 		if (!userMessage) {
-			new Notice("Enter a message first.");
-
 			return;
 		}
 
 		if (!this.plugin.settings.groqApiKey) {
-			new Notice("Configure Groq API key in settings.");
-
+			new Notice("Configure Groq API key first.");
 			return;
 		}
 
@@ -100,26 +157,30 @@ export class ChatComposerView extends ItemView {
 
 		this.renderMessage("user", userMessage);
 
+		this.renderMessage("system", "Generating note...");
+
 		try {
 			const vaultService = new VaultService(
 				this.app,
 				this.plugin.settings.notesFolder,
 				this.plugin.settings.tagFolder,
 			);
+
 			const context = vaultService.getVaultContext();
+
 			if (!this.plugin.noteGenerator) {
 				this.plugin.initializeServices();
 
 				if (!this.plugin.noteGenerator) {
-					throw new Error("Groq API key not configured.");
+					throw new Error("No provider");
 				}
 			}
+
 			const note = await this.plugin.noteGenerator.generateNote({
 				userMessage,
 				tags: context.tags,
 				otherFiles: context.otherFiles,
 				includeTags: this.plugin.settings.includeTagsInPrompt,
-
 				includeRelatedNotes:
 					this.plugin.settings.includeRelatedNotesInPrompt,
 			});
@@ -143,6 +204,8 @@ export class ChatComposerView extends ItemView {
 			new Notice(`Created ${savedFile.basename}`);
 		} catch (error) {
 			console.error(error);
+
+			this.renderMessage("system", "Failed to generate note.");
 
 			new Notice("Failed to generate note.");
 		} finally {

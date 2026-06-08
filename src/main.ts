@@ -30,13 +30,13 @@ export default class ChatWriterPlugin extends Plugin {
 
 		this.addSettingTab(new ChatWriterSettingTab(this.app, this));
 
-		this.addRibbonIcon("message-square", "Open Chat Writer", () => {
+		this.addRibbonIcon("message-square", "Open NoteIt", () => {
 			void this.activateView();
 		});
 
 		this.addCommand({
-			id: "open-chat-writer",
-			name: "Open Chat Writer",
+			id: "open-NoteIt",
+			name: "Open NoteIt",
 			callback: () => {
 				void this.activateView();
 			},
@@ -49,7 +49,7 @@ export default class ChatWriterPlugin extends Plugin {
 			.forEach((leaf) => leaf.detach());
 	}
 
-	private initializeServices(): void {
+	public initializeServices(): void {
 		if (
 			!this.settings.groqApiKey ||
 			this.settings.groqApiKey.trim() === ""

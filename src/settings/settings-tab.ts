@@ -16,7 +16,7 @@ export class ChatWriterSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		containerEl.createEl("h2", {
-			text: "Chat Writer Settings",
+			text: "NoteIt Settings",
 		});
 
 		new Setting(containerEl)
