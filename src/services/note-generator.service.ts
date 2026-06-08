@@ -9,6 +9,8 @@ import { LLMProvider } from "../llm/interfaces/llm-provider";
 
 import { parseNoteResponse } from "../utils/json-parser";
 
+import { MAX_RETRIES, buildRetryPrompt } from "../utils/retry-prompts";
+
 export class NoteGeneratorService {
 	constructor(private readonly llm: LLMProvider) {}
 
@@ -25,12 +27,32 @@ ${request.otherFiles.join(", ")}
 `;
 
 		try {
-			const response = await this.llm.generateJson({
-				systemPrompt: buildSystemPrompt(),
-				userPrompt: userContext,
-			});
+			let prompt = userContext;
 
-			return parseNoteResponse(response);
+			for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+				const response = await this.llm.generateJson({
+					systemPrompt: buildSystemPrompt(),
+					userPrompt: prompt,
+				});
+
+				try {
+					if (!response.trim()) {
+						throw new Error("Empty response");
+					}
+
+					return parseNoteResponse(response);
+				} catch {
+					if (attempt === MAX_RETRIES) {
+						throw new Error(
+							"Model failed to return valid JSON after retries.",
+						);
+					}
+
+					prompt = buildRetryPrompt(request.userMessage, response);
+				}
+			}
+
+			throw new Error("Model failed to return valid JSON after retries.");
 		} catch (error) {
 			console.error(error);
 
