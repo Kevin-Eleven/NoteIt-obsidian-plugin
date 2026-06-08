@@ -1,15 +1,22 @@
 import { SYSTEM_PROMPT } from "./system-prompt";
-import { JSON_OUTPUT_RULES } from "./json-output-rules";
 import { MARKDOWN_RULES } from "./markdown-rules";
 import { LATEX_RULES } from "./latex-rules";
 import { CALLOUT_RULES } from "./callout-rules";
 import { MERMAID_RULES } from "./mermaid-rules";
 import { NOTE_QUALITY_RULES } from "./note-quality-rules";
+import { buildJsonOutputRules } from "./json-output-rules";
+interface PromptOptions {
+	includeTags: boolean;
+	includeRelatedNotes: boolean;
+}
 
-export function buildSystemPrompt(): string {
+export function buildSystemPrompt(options: PromptOptions): string {
 	return [
 		SYSTEM_PROMPT,
-		JSON_OUTPUT_RULES,
+		buildJsonOutputRules({
+			includeTags: options.includeTags,
+			includeRelatedNotes: options.includeRelatedNotes,
+		}),
 		MARKDOWN_RULES,
 		LATEX_RULES,
 		CALLOUT_RULES,

@@ -6,6 +6,13 @@ export interface ChatWriterSettings {
 	model: string;
 
 	temperature: number;
+	notesFolder: string;
+
+	tagFolder: string;
+
+	includeTagsInPrompt: boolean;
+
+	includeRelatedNotesInPrompt: boolean;
 }
 
 export const DEFAULT_SETTINGS: ChatWriterSettings = {
@@ -16,4 +23,11 @@ export const DEFAULT_SETTINGS: ChatWriterSettings = {
 	model: "llama-3.3-70b-versatile",
 
 	temperature: 0.2,
+	notesFolder: "2-notes",
+
+	tagFolder: "1-tags",
+
+	includeTagsInPrompt: true,
+
+	includeRelatedNotesInPrompt: true,
 };

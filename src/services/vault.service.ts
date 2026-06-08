@@ -6,7 +6,11 @@ export interface VaultContext {
 }
 
 export class VaultService {
-	constructor(private readonly app: App) {}
+	constructor(
+		private readonly app: App,
+		private readonly notesFolder: string,
+		private readonly tagFolder: string,
+	) {}
 
 	getVaultContext(): VaultContext {
 		const allFiles = this.app.vault.getFiles();
@@ -14,7 +18,7 @@ export class VaultService {
 		const folderTags: string[] = [];
 
 		allFiles.forEach((file) => {
-			if (file.path.startsWith("1-tags/")) {
+			if (file.path.startsWith(`${this.tagFolder}/`)) {
 				folderTags.push(file.basename);
 			}
 		});
@@ -35,7 +39,10 @@ export class VaultService {
 		const otherFiles: string[] = [];
 
 		allFiles.forEach((file) => {
-			if (file.path.startsWith("2-notes/") && file.extension === "md") {
+			if (
+				file.path.startsWith(`${this.notesFolder}/`) &&
+				file.extension === "md"
+			) {
 				otherFiles.push(file.basename);
 			}
 		});

@@ -15,23 +15,35 @@ export class NoteGeneratorService {
 	constructor(private readonly llm: LLMProvider) {}
 
 	async generateNote(request: NoteRequest): Promise<NoteResponse> {
-		const userContext = `
+		let userContext = `
 USER REQUEST:
-${request.userMessage}
+${request.userMessage}`;
 
-EXISTING TAGS:
+		if (request.includeTags) {
+			userContext += `
+
+AVAILABLE TAGS:
 ${request.tags.join(", ")}
+`;
+		}
 
-OTHER FILES IN VAULT:
+		if (request.includeRelatedNotes) {
+			userContext += `
+
+RELATED NOTES:
 ${request.otherFiles.join(", ")}
 `;
+		}
 
 		try {
 			let prompt = userContext;
 
 			for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
 				const response = await this.llm.generateJson({
-					systemPrompt: buildSystemPrompt(),
+					systemPrompt: buildSystemPrompt({
+						includeTags: request.includeTags,
+						includeRelatedNotes: request.includeRelatedNotes,
+					}),
 					userPrompt: prompt,
 				});
 

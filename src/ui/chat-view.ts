@@ -101,8 +101,11 @@ export class ChatComposerView extends ItemView {
 		this.renderMessage("user", userMessage);
 
 		try {
-			const vaultService = new VaultService(this.app);
-
+			const vaultService = new VaultService(
+				this.app,
+				this.plugin.settings.notesFolder,
+				this.plugin.settings.tagFolder,
+			);
 			const context = vaultService.getVaultContext();
 			if (!this.plugin.noteGenerator) {
 				this.plugin.initializeServices();
@@ -115,6 +118,10 @@ export class ChatComposerView extends ItemView {
 				userMessage,
 				tags: context.tags,
 				otherFiles: context.otherFiles,
+				includeTags: this.plugin.settings.includeTagsInPrompt,
+
+				includeRelatedNotes:
+					this.plugin.settings.includeRelatedNotesInPrompt,
 			});
 
 			const fileContent = buildFileContent(
@@ -127,7 +134,7 @@ export class ChatComposerView extends ItemView {
 
 			const savedFile = await createUniqueFile(
 				this.app.vault,
-				`2-notes/${fileName}`,
+				`${this.plugin.settings.notesFolder}/${fileName}`,
 				fileContent,
 			);
 
