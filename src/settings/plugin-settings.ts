@@ -23,9 +23,9 @@ export const DEFAULT_SETTINGS: ChatWriterSettings = {
 	model: "llama-3.3-70b-versatile",
 
 	temperature: 0.2,
-	notesFolder: "2-notes",
+	notesFolder: "/",
 
-	tagFolder: "1-tags",
+	tagFolder: "/",
 
 	includeTagsInPrompt: true,
 

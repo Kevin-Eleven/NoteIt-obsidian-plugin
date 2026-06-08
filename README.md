@@ -1,90 +1,511 @@
-# Obsidian Sample Plugin
+# NoteIt for Obsidian
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+AI-powered note generation for Obsidian using Groq LLMs.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+NoteIt provides a dedicated chat interface inside Obsidian where users can describe a topic, concept, project, or idea and automatically generate structured markdown notes. Generated notes are enriched with tags, related-note suggestions, YAML frontmatter, Obsidian links, callouts, Mermaid diagrams, tables, and LaTeX when appropriate. :contentReference[oaicite:0]{index=0}
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+---
 
-## First time developing plugins?
+## Features
 
-Quick starting guide for new plugin devs:
+### AI Note Generation
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+- Generate complete Obsidian notes from natural language prompts.
+- Produces structured markdown output.
+- Returns:
+    - Note title
+    - Tags
+    - Related notes
+    - Main note content :contentReference[oaicite:1]{index=1}
 
-## Releasing new releases
+### Vault-Aware Context
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+The plugin automatically gathers context from the user's vault:
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+#### Tags
 
-## Adding your plugin to the community plugin list
+Tags are collected from:
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+- Files inside a configurable tag folder
+- Native Obsidian tags found through metadata cache
 
-## How to use
+#### Existing Notes
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+The plugin scans a configurable notes folder and provides note titles to the LLM as additional context. :contentReference[oaicite:2]{index=2}
 
-## Manually installing the plugin
+### Chat-Based UI
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+The plugin exposes a dedicated chat panel with:
 
-## Improve code quality with eslint
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
+- Prompt input box
+- Chat history
+- Send button
+- Clear chat button
+- Copy previous prompts
+- Enter to send
+- Shift + Enter for new lines :contentReference[oaicite:3]{index=3}
 
-## Funding URL
+### Automatic Note Creation
 
-You can include funding URLs where people who use your plugin can financially support it.
+Generated notes are:
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+- Saved directly into the configured notes folder
+- Given unique filenames automatically
+- Linked to related notes
+- Assigned generated tags
+- Stored with YAML frontmatter metadata :contentReference[oaicite:4]{index=4}
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
+### Configurable Context Injection
+
+Users can choose whether the model receives:
+
+- Available tags
+- Existing note titles
+
+This allows control over prompt size and contextual awareness. :contentReference[oaicite:5]{index=5}
+
+---
+
+# Architecture
+
+## High-Level Flow
+
+```text
+User Prompt
+      │
+      ▼
+Chat View
+      │
+      ▼
+Vault Service
+      │
+      ▼
+Note Generator Service
+      │
+      ▼
+LLM Factory
+      │
+      ▼
+Groq Provider
+      │
+      ▼
+Groq API
+      │
+      ▼
+Structured JSON Response
+      │
+      ▼
+JSON Validation
+      │
+      ▼
+Markdown Note Builder
+      │
+      ▼
+Obsidian Vault
+```
+
+---
+
+# Project Structure
+
+```text
+src/
+│
+├── llm/
+│   ├── interfaces/
+│   │   └── llm-provider.ts
+│   │
+│   ├── providers/
+│   │   └── groq-provider.ts
+│   │
+│   └── llm-factory.ts
+│
+├── models/
+│   ├── note-request.ts
+│   └── note-response.ts
+│
+├── prompts/
+│   ├── note-prompt-builder.ts
+│   ├── callout-rules.ts
+│   ├── mermaid-rules.ts
+│   ├── latex-rules.ts
+│   └── ...
+│
+├── services/
+│   ├── note-generator.service.ts
+│   └── vault.service.ts
+│
+├── settings/
+│   ├── plugin-settings.ts
+│   └── settings-tab.ts
+│
+├── ui/
+│   └── chat-view.ts
+│
+├── utils/
+│   ├── file-utils.ts
+│   └── json-parser.ts
+│
+└── main.ts
+```
+
+---
+
+# Core Components
+
+## main.ts
+
+Plugin entry point.
+
+Responsibilities:
+
+- Load settings
+- Register custom view
+- Register commands
+- Register ribbon icon
+- Initialize services
+- Handle plugin lifecycle events :contentReference[oaicite:6]{index=6}
+
+---
+
+## ChatComposerView
+
+Custom Obsidian view responsible for user interaction.
+
+Features:
+
+- Chat interface
+- Prompt submission
+- Prompt history
+- Copy prompt button
+- Clear chat
+- Note generation requests
+- Note creation notifications :contentReference[oaicite:7]{index=7}
+
+---
+
+## VaultService
+
+Extracts vault context.
+
+Returns:
+
+```ts
+interface VaultContext {
+	tags: string[];
+	otherFiles: string[];
 }
 ```
 
-If you have multiple URLs, you can also do:
+Collects:
+
+- Folder-based tags
+- Native Obsidian tags
+- Existing notes in configured notes folder :contentReference[oaicite:8]{index=8}
+
+---
+
+## NoteGeneratorService
+
+Coordinates note generation.
+
+Responsibilities:
+
+- Build prompt context
+- Call LLM provider
+- Parse JSON output
+- Validate schema
+- Return structured note objects :contentReference[oaicite:9]{index=9}
+
+---
+
+## LLMFactory
+
+Creates the active LLM provider.
+
+Current implementation:
+
+```text
+Groq
+```
+
+Future providers can be added without changing application logic. :contentReference[oaicite:10]{index=10}
+
+---
+
+## GroqProvider
+
+Concrete LLM implementation.
+
+Uses:
+
+```text
+Groq OpenAI-Compatible API
+```
+
+Supports:
+
+- Model selection
+- Temperature control
+- JSON-mode responses :contentReference[oaicite:11]{index=11}
+
+---
+
+## JSON Parser
+
+Validates model responses.
+
+Uses:
+
+```text
+zod
+```
+
+Expected schema:
 
 ```json
 {
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
+	"title": "",
+	"tags": [],
+	"related_notes": [],
+	"content": ""
 }
 ```
 
-## API Documentation
+Invalid responses are rejected before file creation. :contentReference[oaicite:12]{index=12}
 
-See https://docs.obsidian.md
+---
+
+# Generated Note Format
+
+Generated notes are stored as:
+
+```md
+---
+created: 2026-01-01T00:00:00.000Z
+tags:
+    - ai
+    - transformers
+---
+
+Related Notes
+
+- [[Attention]]
+- [[Deep Learning]]
+
+# Title
+
+Generated content...
+```
+
+Features:
+
+- Creation timestamp
+- YAML frontmatter
+- Related note links
+- Structured markdown content :contentReference[oaicite:13]{index=13}
+
+---
+
+# Settings
+
+## Provider Settings
+
+### Groq API Key
+
+Required for note generation.
+
+```text
+gsk_xxxxxxxxx
+```
+
+### Model
+
+Default:
+
+```text
+llama-3.3-70b-versatile
+```
+
+### Temperature
+
+Default:
+
+```text
+0.2
+```
+
+Lower values produce more deterministic notes. :contentReference[oaicite:14]{index=14}
+
+---
+
+## Vault Settings
+
+### Notes Folder
+
+Default:
+
+```text
+2-notes
+```
+
+Location where generated notes are saved. :contentReference[oaicite:15]{index=15}
+
+### Tag Folder
+
+Default:
+
+```text
+1-tags
+```
+
+Folder used to discover available tags. :contentReference[oaicite:16]{index=16}
+
+---
+
+## Context Settings
+
+### Include Tags
+
+Default:
+
+```text
+true
+```
+
+Provides available tags to the model.
+
+### Include Related Notes
+
+Default:
+
+```text
+true
+```
+
+Provides note titles to the model. :contentReference[oaicite:17]{index=17}
+
+---
+
+# Commands
+
+## Open NoteIt
+
+Opens the NoteIt panel.
+
+Accessible through:
+
+- Command Palette
+- Ribbon Icon :contentReference[oaicite:18]{index=18}
+
+---
+
+# User Workflow
+
+1. Open NoteIt.
+2. Enter a prompt.
+3. Press Enter or click Send.
+4. Plugin gathers vault context.
+5. Context is sent to Groq.
+6. LLM returns structured JSON.
+7. Response is validated.
+8. Markdown note is generated.
+9. Note is saved to the vault.
+10. User receives confirmation. :contentReference[oaicite:19]{index=19}
+
+---
+
+# Extending the Plugin
+
+## Adding a New LLM Provider
+
+Implement:
+
+```ts
+LLMProvider;
+```
+
+```ts
+interface LLMProvider {
+	generateJson(params: GenerateJsonParams): Promise<string>;
+}
+```
+
+Register provider in:
+
+```ts
+LLMFactory;
+```
+
+No changes are required elsewhere in the application. :contentReference[oaicite:20]{index=20}
+
+---
+
+# Current Limitations
+
+- Only Groq is supported.
+- No conversation memory between sessions.
+- No embedding search.
+- No semantic note retrieval.
+- No retry guardrails.
+- API key stored in plugin settings.
+- Context is limited to tags and note titles.
+- Generated notes rely entirely on LLM output quality.
+
+---
+
+# Future Roadmap
+
+- Embedding-based retrieval
+- Semantic note search
+- RAG-enhanced generation
+- Multiple LLM providers
+- Streaming responses
+- Retry guardrails
+- Conversation persistence
+- Note editing workflows
+- Citation support
+- Context ranking
+- Related note similarity scoring
+
+---
+
+# Development
+
+## Install Dependencies
+
+```bash
+npm install
+```
+
+## Development Build
+
+```bash
+npm run dev
+```
+
+## Production Build
+
+```bash
+npm run build
+```
+
+## Load Plugin
+
+Copy build artifacts into:
+
+```text
+<vault>/.obsidian/plugins/NoteIt/
+```
+
+Enable the plugin from:
+
+```text
+Settings → Community Plugins
+```
+
+---
+
+# License
+
+MIT
